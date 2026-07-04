@@ -331,7 +331,7 @@ kbd.shortcut{
   flex-shrink:0;width:222px;scroll-snap-align:start;border-radius:var(--radius-card);
   background:var(--bg-card);border:1px solid var(--border);overflow:hidden;cursor:pointer;
   transition:transform .28s ease, box-shadow .28s ease, border-color .28s ease;
-  opacity:0;transform:translateY(16px);
+  opacity:0;transform:translateY(16px);display:block;color:inherit;text-decoration:none;
 }
 .card.in-view{opacity:1;transform:translateY(0);}
 .card:hover{transform:translateY(-8px);box-shadow:var(--shadow-glow);border-color:var(--primary);}
@@ -826,7 +826,7 @@ function gameById(id){ return games.find(g=>g.id===id); }
 function cardHTML(game){
   const badgesHTML = game.badges.map(b=>`<span class="badge ${b}">${badgeLabel[b]}</span>`).join('');
   return `
-  <div class="card" data-id="${game.id}">
+  <a class="card" href="game-details.html?id=${game.id}" data-id="${game.id}">
     <div class="thumb" style="background:linear-gradient(135deg, ${game.g[0]}33, ${game.g[1]}33);">
       <div class="badges-row">${badgesHTML}</div>
       <button class="fav-btn" aria-label="Favorite" onclick="toggleFav(event,this)">
@@ -843,7 +843,7 @@ function cardHTML(game){
         <span class="pl mono">${game.players}</span>
       </div>
     </div>
-  </div>`;
+  </a>`;
 }
 
 document.querySelectorAll('.scroll-row').forEach(row=>{
@@ -851,74 +851,175 @@ document.querySelectorAll('.scroll-row').forEach(row=>{
   row.innerHTML = sections[key].map(id=>cardHTML(gameById(id))).join('');
 });
 
+/* ============ CATEGORY PILLS ============ */
+const hues = ['rgba(124,58,237,.16)','rgba(59,130,246,.16)','rgba(6,182,212,.16)','rgba(34,197,94,.16)','rgba(245,158,11,.16)','rgba(239,68,68,.16)'];
+let activePill = null;
 document.getElementById('pillsRow').innerHTML = pills.map((p,i)=>{
-  const hues = ['rgba(124,58,237,.16)','rgba(59,130,246,.16)','rgba(6,182,212,.16)','rgba(34,197,94,.16)','rgba(245,158,11,.16)','rgba(239,68,68,.16)'];
-  return `<button class="pill" style="background:${hues[i%hues.length]};"><span class="e">${p.e}</span>${p.l}</button>`;
+  return `<button class="pill" data-cat="${p.l}" style="background:${hues[i%hues.length]};" onclick="filterByPill(this,'${p.l}')"><span class="e">${p.e}</span>${p.l}</button>`;
 }).join('');
 
+function filterByPill(btn, cat){
+  const isActive = btn.classList.contains('pill-active');
+  document.querySelectorAll('.pill').forEach(b=>{b.classList.remove('pill-active');b.style.boxShadow='';b.style.borderColor='';});
+  if(!isActive){
+    btn.classList.add('pill-active');
+    btn.style.boxShadow='0 0 0 2px var(--primary)';
+    btn.style.borderColor='var(--primary)';
+    activePill = cat;
+    filterCards(cat);
+  } else {
+    activePill = null;
+    filterCards(null);
+  }
+}
+
+function filterCards(cat){
+  document.querySelectorAll('.scroll-row').forEach(row=>{
+    row.querySelectorAll('.card').forEach(card=>{
+      const game = games.find(g=>g.id===parseInt(card.dataset.id));
+      if(!cat || (game && (game.cat.toLowerCase().includes(cat.toLowerCase()) || cat.toLowerCase().includes(game.cat.toLowerCase())))){
+        card.style.display=''; card.style.opacity='1';
+      } else {
+        card.style.opacity='0.25'; card.style.filter='grayscale(60%)';
+      }
+    });
+  });
+  if(!cat){
+    document.querySelectorAll('.card').forEach(c=>{ c.style.opacity=''; c.style.filter=''; c.style.display=''; });
+  }
+}
+
+/* ============ LIVE SEARCH ============ */
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  updateSearchPanel(q);
+});
+searchInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && searchInput.value.trim()){
+    const first = games.find(g=>g.title.toLowerCase().includes(searchInput.value.toLowerCase()));
+    if(first) window.location.href = `game-details.html?id=${first.id}`;
+  }
+});
+
+function updateSearchPanel(q){
+  const panel = document.querySelector('.search-panel');
+  if(!q){ panel.innerHTML = `
+    <h5>Recent searches</h5>
+    <div class="chip-row"><span class="chip" onclick="applyChip('Neon Drift Royale')">Neon Drift Royale</span><span class="chip" onclick="applyChip('Crystal Cascade')">Crystal Cascade</span><span class="chip" onclick="applyChip('Pixel Brawlers')">Pixel Brawlers</span></div>
+    <h5>Trending searches</h5>
+    <div class="chip-row"><span class="chip" onclick="applyChip('Battle Royale')">🔥 Battle Royale</span><span class="chip" onclick="applyChip('Racing')">🏎️ Racing</span><span class="chip" onclick="applyChip('Puzzle')">🧩 Puzzle</span><span class="chip" onclick="applyChip('Adventure')">🗺️ Adventure</span></div>`; return; }
+  const results = games.filter(g=>g.title.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)).slice(0,6);
+  if(!results.length){ panel.innerHTML=`<p style="font-size:13px;color:var(--text-faint);padding:6px 0;">No games found for "<strong style="color:var(--text);">${q}</strong>"</p>`; return; }
+  panel.innerHTML = `<h5>Results (${results.length})</h5><div style="display:flex;flex-direction:column;gap:4px;">`+
+    results.map(g=>`<a href="game-details.html?id=${g.id}" style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:11px;transition:.15s;" onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+      <span style="font-size:20px;">${g.e}</span>
+      <span style="flex:1;"><strong style="font-size:13.5px;">${g.title}</strong><br><span style="font-size:11.5px;color:var(--text-faint);">${g.cat} · ★ ${g.rating}</span></span>
+      <span style="font-size:11px;color:var(--text-faint);white-space:nowrap;">${g.players}</span>
+    </a>`).join('')+`</div>`;
+}
+
+function applyChip(val){
+  searchInput.value = val;
+  updateSearchPanel(val.toLowerCase());
+  searchInput.focus();
+}
+
+/* ============ SECTION "VIEW ALL" LINKS ============ */
+document.querySelectorAll('.view-all').forEach((link, i)=>{
+  const sections_order = ['trending','featured','new','multiplayer','puzzle','toprated'];
+  link.href = `#${sections_order[i] || 'trending'}`;
+});
+
+/* ============ NAV CAT DROPDOWN LINKS ============ */
+document.querySelectorAll('.cat-panel a').forEach(a=>{
+  const cat = a.textContent.trim().replace(/^[^\w]+/,'');
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    document.getElementById('catDropdown').classList.remove('open');
+    const pill = [...document.querySelectorAll('.pill')].find(p=>p.dataset.cat===cat);
+    if(pill) { pill.click(); pill.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+    else { filterCards(cat); }
+  });
+});
+
+/* ============ FAVORITE TOGGLE ============ */
 function toggleFav(e, btn){
+  e.preventDefault();
   e.stopPropagation();
   btn.classList.toggle('active');
 }
 
+/* ============ THEME ============ */
 function toggleTheme(){
   const html = document.documentElement;
   html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
 }
 
-/* scroll buttons */
+/* ============ SCROLL BUTTONS ============ */
 document.querySelectorAll('.row-wrap').forEach(wrap=>{
   const row = wrap.querySelector('.scroll-row');
-  wrap.querySelector('.left').addEventListener('click',()=>row.scrollBy({left:-480,behavior:'smooth'}));
-  wrap.querySelector('.right').addEventListener('click',()=>row.scrollBy({left:480,behavior:'smooth'}));
+  wrap.querySelector('.left').addEventListener('click', e=>{ e.stopPropagation(); row.scrollBy({left:-480,behavior:'smooth'}); });
+  wrap.querySelector('.right').addEventListener('click', e=>{ e.stopPropagation(); row.scrollBy({left:480,behavior:'smooth'}); });
 });
 
-/* close category dropdown on outside click */
+/* ============ CLOSE DROPDOWNS ON OUTSIDE CLICK ============ */
 document.addEventListener('click', e=>{
   const dd = document.getElementById('catDropdown');
   if(dd && !dd.contains(e.target)) dd.classList.remove('open');
-});
-
-/* keyboard shortcut: / focuses search */
-document.addEventListener('keydown', e=>{
-  if(e.key==='/' && document.activeElement.tagName!=='INPUT'){
-    e.preventDefault();
-    document.getElementById('searchInput').focus();
+  const sw = document.querySelector('.search-wrap');
+  if(sw && !sw.contains(e.target)){
+    const panel = document.querySelector('.search-panel');
+    if(panel && searchInput.value==='') updateSearchPanel('');
   }
 });
 
-/* mobile nav active state */
+/* ============ KEYBOARD: / TO FOCUS SEARCH ============ */
+document.addEventListener('keydown', e=>{
+  if(e.key==='/' && document.activeElement.tagName!=='INPUT'){
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
+  if(e.key==='Escape') searchInput.blur();
+});
+
+/* ============ MOBILE NAV ============ */
 document.querySelectorAll('.mobile-nav button').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.mobile-nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    if(tab==='home') window.scrollTo({top:0,behavior:'smooth'});
+    if(tab==='search'){ searchInput.focus(); window.scrollTo({top:0,behavior:'smooth'}); }
   });
 });
 
-/* particles */
+/* ============ HERO BUTTONS ============ */
+document.querySelector('.btn-hero-play').addEventListener('click', e=>{
+  e.preventDefault();
+  window.location.href='game-details.html?id=1';
+});
+
+/* ============ PARTICLES ============ */
 const pWrap = document.getElementById('particles');
 for(let i=0;i<22;i++){
   const p = document.createElement('div');
   p.className='particle';
   const size = 2 + Math.random()*3;
-  p.style.width = size+'px';
-  p.style.height = size+'px';
-  p.style.left = Math.random()*100+'%';
-  p.style.bottom = '-10px';
-  p.style.animationDuration = (12 + Math.random()*14)+'s';
+  p.style.width = size+'px'; p.style.height = size+'px';
+  p.style.left = Math.random()*100+'%'; p.style.bottom = '-10px';
+  p.style.animationDuration = (12+Math.random()*14)+'s';
   p.style.animationDelay = (Math.random()*14)+'s';
   pWrap.appendChild(p);
 }
 
-/* scroll reveal */
+/* ============ SCROLL REVEAL ============ */
 const observer = new IntersectionObserver((entries)=>{
   entries.forEach(entry=>{
-    if(entry.isIntersecting){
-      entry.target.classList.add('in-view');
-      observer.unobserve(entry.target);
-    }
+    if(entry.isIntersecting){ entry.target.classList.add('in-view'); observer.unobserve(entry.target); }
   });
-},{threshold:0.15});
+},{threshold:0.12});
 document.querySelectorAll('.card').forEach((card,i)=>{
   card.style.transitionDelay = (i%7 * 0.05)+'s';
   observer.observe(card);
