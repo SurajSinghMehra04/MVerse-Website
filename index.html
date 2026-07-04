@@ -1014,7 +1014,30 @@ for(let i=0;i<22;i++){
   pWrap.appendChild(p);
 }
 
-/* ============ SCROLL REVEAL ============ */
+/* ============ RESUME BADGES (show on cards with saved progress) ============ */
+function applyResumeBadges(){
+  try{
+    const history = JSON.parse(localStorage.getItem('mverse_history')) || [];
+    const recentIds = new Set(history.slice(0,10).map(h=>h.gameId));
+    document.querySelectorAll('.card').forEach(card=>{
+      const id = parseInt(card.dataset.id);
+      if(!recentIds.has(id)) return;
+      const saves = JSON.parse(localStorage.getItem(`mverse_save_g${id}`) || 'null');
+      if(!saves || !saves.some(s=>s!==null)) return;
+      /* Add CONTINUE badge */
+      const badgesRow = card.querySelector('.badges-row');
+      if(badgesRow && !badgesRow.querySelector('.badge.continue')){
+        const b = document.createElement('span');
+        b.className='badge continue';
+        b.textContent='CONTINUE';
+        b.style.cssText='background:rgba(34,197,94,0.92);';
+        badgesRow.appendChild(b);
+      }
+    });
+  } catch(e){}
+}
+/* Run after cards render */
+setTimeout(applyResumeBadges, 600);
 const observer = new IntersectionObserver((entries)=>{
   entries.forEach(entry=>{
     if(entry.isIntersecting){ entry.target.classList.add('in-view'); observer.unobserve(entry.target); }

@@ -392,6 +392,40 @@ img,svg{display:block;}
   .footer{padding:36px 18px 100px;}
 }
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001s !important;transition-duration:.001s !important;}}
+
+/* ============ SAVE PROGRESS ============ */
+.save-slot{background:var(--bg-secondary);border:1px solid var(--border);border-radius:14px;padding:14px;transition:.2s;position:relative;}
+.save-slot:hover{border-color:var(--primary);}
+.save-slot.empty{border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:100px;cursor:pointer;}
+.save-slot.empty:hover{background:var(--grad-brand-soft);}
+.save-slot .slot-num{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:8px;}
+.save-slot .slot-time{font-size:12px;color:var(--text-dim);margin-top:6px;display:flex;align-items:center;gap:5px;}
+.save-slot .slot-actions{display:flex;gap:6px;margin-top:10px;}
+.save-slot .slot-actions button{flex:1;padding:7px;border-radius:8px;font-size:11.5px;font-weight:700;}
+.slot-load{background:var(--grad-brand);color:#fff;}
+.slot-delete{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+.slot-save{background:rgba(34,197,94,.12);color:var(--success);border:1px solid rgba(34,197,94,.25);width:100%;padding:7px;border-radius:8px;font-size:11.5px;font-weight:700;margin-top:8px;}
+.save-slot .slot-emoji{font-size:22px;margin-bottom:6px;}
+.save-slot .slot-title{font-size:13px;font-weight:700;}
+.save-slot .slot-score{font-family:var(--font-mono);font-size:13px;color:var(--accent);}
+
+/* RESUME BANNER */
+.resume-banner{
+  background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(6,182,212,0.1));
+  border:1px solid rgba(34,197,94,0.3);border-radius:16px;padding:16px 20px;
+  display:flex;align-items:center;gap:16px;margin-bottom:4px;
+}
+.resume-banner .rb-icon{font-size:24px;}
+.resume-banner .rb-info{flex:1;}
+.resume-banner .rb-info h4{font-size:14px;font-weight:700;margin-bottom:2px;}
+.resume-banner .rb-info p{font-size:12.5px;color:var(--text-dim);}
+.resume-banner .rb-btn{padding:10px 18px;border-radius:11px;background:var(--grad-brand);color:#fff;font-size:13px;font-weight:700;white-space:nowrap;}
+.resume-banner .rb-close{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);}
+.resume-banner .rb-close:hover{background:rgba(255,255,255,.08);color:var(--text);}
+
+/* AUTOSAVE PULSE */
+@keyframes savePulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.saving .autoSaveDot{animation:savePulse .7s ease-in-out infinite;}
 </style>
 </head>
 <body>
@@ -400,7 +434,7 @@ img,svg{display:block;}
 
 <!-- NAVBAR -->
 <nav class="navbar">
-  <a href="mverse-homepage.html" class="logo">
+  <a href="index.html" class="logo">
     <svg class="logo-mark" viewBox="0 0 40 40" fill="none">
       <defs><linearGradient id="mgrad" x1="0" y1="0" x2="40" y2="40">
         <stop offset="0%" stop-color="#7C3AED"/><stop offset="55%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#06B6D4"/>
@@ -416,9 +450,9 @@ img,svg{display:block;}
     </div>
   </div>
   <div class="nav-links">
-    <a href="mverse-homepage.html#trending">Trending</a>
-    <a href="mverse-homepage.html#new">New</a>
-    <a href="mverse-homepage.html#multiplayer">Multiplayer</a>
+    <a href="index.html#trending">Trending</a>
+    <a href="index.html#new">New</a>
+    <a href="index.html#multiplayer">Multiplayer</a>
   </div>
   <div class="nav-actions">
     <button class="icon-btn" id="favHeaderBtn" aria-label="Favorites">
@@ -446,13 +480,13 @@ img,svg{display:block;}
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-section">
-    <a class="side-item" href="mverse-homepage.html">
+    <a class="side-item" href="index.html">
       <svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Home</span>
     </a>
-    <a class="side-item" href="mverse-homepage.html#trending">
+    <a class="side-item" href="index.html#trending">
       <svg class="icon" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 10-13h-6l1-7z"/></svg><span>Trending</span>
     </a>
-    <a class="side-item" href="mverse-homepage.html#new">
+    <a class="side-item" href="index.html#new">
       <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.4 5.8L21 9.3l-4.6 4.2L17.6 21 12 17.6 6.4 21l1.2-7.5L3 9.3l6.6-.5z"/></svg><span>New</span>
     </a>
   </div>
@@ -466,14 +500,27 @@ img,svg{display:block;}
 
 <main class="main">
   <div class="breadcrumb">
-    <a href="mverse-homepage.html">Games</a><span>/</span>
-    <a href="mverse-homepage.html#trending" id="bcCat">Racing</a><span>/</span>
+    <a href="index.html">Games</a><span>/</span>
+    <a href="index.html#trending" id="bcCat">Racing</a><span>/</span>
     <span id="bcTitle" style="color:var(--text-dim);">Neon Drift Royale</span>
   </div>
 
   <div class="layout">
     <!-- ============ MAIN COLUMN ============ -->
     <div class="col-main">
+
+      <!-- RESUME BANNER (shown if saved progress exists) -->
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <span class="rb-icon">💾</span>
+        <div class="rb-info">
+          <h4 id="resumeTitle">Continue where you left off</h4>
+          <p id="resumeDesc">Last played — loading your saved session...</p>
+        </div>
+        <button class="rb-btn" onclick="loadSaveSlot(0)">▶ Resume</button>
+        <button class="rb-close" onclick="document.getElementById('resumeBanner').style.display='none'">
+          <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
 
       <!-- PLAYER -->
       <div class="player-card">
@@ -558,10 +605,23 @@ img,svg{display:block;}
             <svg class="icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg>
             Fullscreen
           </button>
+          <div class="tb-sep"></div>
+          <button class="tbtn" id="saveBtn" onclick="manualSave()" style="color:var(--success);">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            <span id="saveBtnText">Save Progress</span>
+          </button>
+          <span id="autoSaveIndicator" style="font-size:11px;color:var(--text-faint);display:flex;align-items:center;gap:5px;padding:0 4px;">
+            <span id="autoSaveDot" style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block;"></span>
+            <span id="autoSaveLabel">Auto-saved</span>
+          </span>
         </div>
       </div>
 
-      <!-- GAME HEADER -->
+      <!-- SAVE SLOTS PANEL -->
+      <div id="saveSlotsPanel" style="display:none;" class="panel">
+        <h2><svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save Slots</h2>
+        <div id="saveSlotsList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+      </div>
       <div class="game-head">
         <div class="title-block">
           <h1 id="gameTitle">Neon Drift Royale</h1>
@@ -732,7 +792,7 @@ img,svg{display:block;}
     <!-- ============ SIDEBAR COLUMN ============ -->
     <div class="col-side">
       <div class="side-panel">
-        <h3>Recommended <a href="mverse-homepage.html">View all</a></h3>
+        <h3>Recommended <a href="index.html">View all</a></h3>
         <div id="recList"></div>
       </div>
       <div class="side-panel">
@@ -761,7 +821,7 @@ img,svg{display:block;}
   <footer class="footer">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="mverse-homepage.html" class="logo" style="font-size:18px;">
+        <a href="index.html" class="logo" style="font-size:18px;">
           <svg class="logo-mark" viewBox="0 0 40 40" fill="none" style="width:30px;height:30px;">
             <path d="M9 28V12L20 23L31 12V28" stroke="url(#mgrad)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
@@ -1161,6 +1221,206 @@ document.querySelectorAll('.mobile-nav button').forEach(btn=>{
     btn.classList.add('active');
   });
 });
+
+/* ============================================================
+   SAVE PROGRESS SYSTEM
+   - Auto-saves every 30 seconds while game is active
+   - 3 manual save slots per game
+   - Stores: score, level, play time, timestamp
+   - Persists across sessions via localStorage
+   ============================================================ */
+
+const SAVE_KEY = `mverse_save_g${current.id}`;
+const HISTORY_KEY = 'mverse_history';
+let sessionStartTime = Date.now();
+let sessionScore = 0;
+let sessionLevel = 1;
+let autoSaveInterval = null;
+
+/* ---- Session score simulator (replace with real game data in production) ---- */
+setInterval(()=>{
+  sessionScore += Math.floor(Math.random()*120 + 20);
+  if(Math.random() > 0.95) sessionLevel++;
+}, 8000);
+
+/* ---- Save to localStorage ---- */
+function buildSaveData(slotLabel){
+  return {
+    gameId: current.id,
+    gameTitle: current.title,
+    gameEmoji: current.e,
+    slot: slotLabel,
+    score: sessionScore,
+    level: sessionLevel,
+    playTimeMs: Date.now() - sessionStartTime,
+    savedAt: Date.now()
+  };
+}
+
+function getSaves(){
+  try{ return JSON.parse(localStorage.getItem(SAVE_KEY)) || [null,null,null]; }
+  catch{ return [null,null,null]; }
+}
+function putSaves(saves){ localStorage.setItem(SAVE_KEY, JSON.stringify(saves)); }
+
+/* ---- Format helpers ---- */
+function fmtTime(ms){
+  const s=Math.floor(ms/1000), m=Math.floor(s/60), h=Math.floor(m/60);
+  if(h>0) return `${h}h ${m%60}m`;
+  if(m>0) return `${m}m ${s%60}s`;
+  return `${s}s`;
+}
+function fmtDate(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ---- Render the 3 save slots ---- */
+function renderSaveSlots(){
+  const saves = getSaves();
+  const panel = document.getElementById('saveSlotsPanel');
+  const list = document.getElementById('saveSlotsList');
+  panel.style.display = 'block';
+  list.innerHTML = saves.map((sv,i)=> sv ? `
+    <div class="save-slot">
+      <div class="slot-num">Slot ${i+1}</div>
+      <div class="slot-emoji">${sv.gameEmoji}</div>
+      <div class="slot-title">Lv.${sv.level} · ${sv.score.toLocaleString()} pts</div>
+      <div class="slot-time">
+        <svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        ${fmtDate(sv.savedAt)} · ${fmtTime(sv.playTimeMs)} played
+      </div>
+      <div class="slot-actions">
+        <button class="slot-load" onclick="loadSaveSlot(${i})">▶ Resume</button>
+        <button class="slot-delete" onclick="deleteSaveSlot(${i})">🗑</button>
+      </div>
+    </div>` : `
+    <div class="save-slot empty" onclick="saveToSlot(${i})">
+      <div style="text-align:center;">
+        <div style="font-size:20px;margin-bottom:6px;">💾</div>
+        <div style="font-size:12px;color:var(--text-faint);">Slot ${i+1} — Empty</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Click to save here</div>
+      </div>
+    </div>`
+  ).join('');
+  /* add Save-to-slot buttons on occupied slots */
+  saves.forEach((sv,i)=>{ if(sv){
+    const el = list.children[i];
+    const btn = document.createElement('button');
+    btn.className='slot-save'; btn.textContent='Overwrite Save';
+    btn.onclick = ()=> saveToSlot(i);
+    el.appendChild(btn);
+  }});
+}
+
+function saveToSlot(i){
+  const saves = getSaves();
+  saves[i] = buildSaveData(`Slot ${i+1}`);
+  putSaves(saves);
+  updateHistory();
+  showToast(`✅ Progress saved to Slot ${i+1}!`);
+  renderSaveSlots();
+  flashSaveIndicator('Saved to Slot '+(i+1));
+}
+
+function deleteSaveSlot(i){
+  const saves = getSaves();
+  saves[i] = null;
+  putSaves(saves);
+  renderSaveSlots();
+  showToast(`🗑 Slot ${i+1} cleared`);
+}
+
+function loadSaveSlot(i){
+  const saves = getSaves();
+  const sv = saves[i] || saves.find(s=>s!==null);
+  if(!sv){ showToast('No save data found — starting fresh'); return; }
+  sessionScore = sv.score;
+  sessionLevel = sv.level;
+  showToast(`▶ Resumed from Slot ${i+1} — Score: ${sv.score.toLocaleString()}, Lv.${sv.level}`);
+  document.getElementById('resumeBanner').style.display='none';
+  runLoading();
+}
+
+/* ---- Manual save button ---- */
+function manualSave(){
+  /* Find first empty slot, else overwrite slot 0 */
+  const saves = getSaves();
+  const empty = saves.findIndex(s=>s===null);
+  const slot = empty >= 0 ? empty : 0;
+  saveToSlot(slot);
+  renderSaveSlots();
+}
+
+/* ---- Auto-save every 30 seconds ---- */
+function startAutoSave(){
+  autoSaveInterval = setInterval(()=>{
+    const saves = getSaves();
+    /* Auto-save always goes to slot 0 silently */
+    saves[0] = buildSaveData('Auto');
+    putSaves(saves);
+    updateHistory();
+    flashSaveIndicator('Auto-saved');
+  }, 30000);
+}
+
+function flashSaveIndicator(label){
+  const dot = document.getElementById('autoSaveDot');
+  const lbl = document.getElementById('autoSaveLabel');
+  lbl.textContent = label;
+  dot.style.background = 'var(--success)';
+  dot.style.boxShadow = '0 0 6px var(--success)';
+  setTimeout(()=>{ dot.style.boxShadow=''; lbl.textContent='Auto-saved'; }, 2000);
+}
+
+/* ---- Play history (drives "Recently Played" on homepage) ---- */
+function updateHistory(){
+  try{
+    let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    history = history.filter(h=>h.gameId!==current.id);
+    history.unshift({
+      gameId: current.id,
+      gameTitle: current.title,
+      gameEmoji: current.e,
+      gameCat: current.cat,
+      playedAt: Date.now(),
+      score: sessionScore,
+      level: sessionLevel
+    });
+    history = history.slice(0,20);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch(e){}
+}
+
+/* ---- Check for existing save on load ---- */
+function checkExistingSave(){
+  const saves = getSaves();
+  const latest = saves.filter(s=>s!==null).sort((a,b)=>b.savedAt-a.savedAt)[0];
+  if(latest){
+    const banner = document.getElementById('resumeBanner');
+    const ago = Math.round((Date.now()-latest.savedAt)/60000);
+    const agoStr = ago<1?'just now': ago<60?`${ago}m ago`:`${Math.floor(ago/60)}h ago`;
+    document.getElementById('resumeTitle').textContent = `Continue ${latest.gameTitle}`;
+    document.getElementById('resumeDesc').textContent =
+      `Lv.${latest.level} · ${latest.score.toLocaleString()} pts · saved ${agoStr} · ${fmtTime(latest.playTimeMs)} played`;
+    banner.style.display = 'flex';
+    renderSaveSlots();
+  }
+}
+
+/* ---- Record this visit to history immediately ---- */
+updateHistory();
+checkExistingSave();
+startAutoSave();
+
+/* ---- Save on page unload ---- */
+window.addEventListener('beforeunload', ()=>{
+  const saves = getSaves();
+  saves[0] = buildSaveData('Auto');
+  putSaves(saves);
+  updateHistory();
+});
+
 </script>
 </body>
 </html>
