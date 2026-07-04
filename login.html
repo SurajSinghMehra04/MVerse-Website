@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — MVerse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8910075426156814" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg-primary:#090B15;
+  --bg-secondary:#111827;
+  --bg-card:#171D2E;
+  --primary:#7C3AED;
+  --secondary:#3B82F6;
+  --accent:#06B6D4;
+  --success:#22C55E;
+  --warning:#F59E0B;
+  --danger:#EF4444;
+  --text:#FFFFFF;
+  --text-dim:#9CA3AF;
+  --text-faint:#5B6275;
+  --border:rgba(124,58,237,0.18);
+  --glass:rgba(23,29,46,0.6);
+  --grad-brand:linear-gradient(135deg,#7C3AED,#3B82F6 55%,#06B6D4);
+  --grad-brand-soft:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(59,130,246,0.14) 55%,rgba(6,182,212,0.12));
+  --shadow-glow:0 0 0 1px rgba(124,58,237,0.25),0 8px 40px -8px rgba(124,58,237,0.4);
+  --font-display:'Sora',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg-primary);color:var(--text);font-family:var(--font-body);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;overflow-x:hidden;}
+a{text-decoration:none;color:inherit;}
+button{font-family:inherit;border:none;cursor:pointer;}
+::selection{background:var(--primary);color:#fff;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:rgba(124,58,237,.35);border-radius:6px;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+/* BG */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);animation:drift 20s ease-in-out infinite;}
+.blob.b1{width:500px;height:500px;background:#7C3AED;top:-180px;left:-140px;opacity:.4;}
+.blob.b2{width:420px;height:420px;background:#06B6D4;bottom:-160px;right:-120px;opacity:.35;animation-delay:-8s;}
+.blob.b3{width:360px;height:360px;background:#3B82F6;top:40%;left:40%;opacity:.25;animation-delay:-14s;}
+.stars{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.55) 1px,transparent 1px);background-size:130px 130px;opacity:.3;}
+@keyframes drift{0%,100%{transform:translate(0,0);}50%{transform:translate(28px,18px);}}
+
+/* GRID OVERLAY */
+.grid-overlay{position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(124,58,237,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.04) 1px,transparent 1px);background-size:48px 48px;}
+
+/* NAVBAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:10;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:rgba(9,11,21,.6);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:19px;}
+.logo-text{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.topbar-link{font-size:13.5px;font-weight:600;color:var(--text-dim);}
+.topbar-link:hover{color:var(--text);}
+
+/* CARD */
+.card{width:100%;max-width:440px;background:var(--glass);border:1px solid var(--border);border-radius:24px;padding:40px;backdrop-filter:blur(24px) saturate(160%);box-shadow:var(--shadow-glow);animation:fadeUp .4s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+.card-head{text-align:center;margin-bottom:32px;}
+.card-head .logo-mark{margin:0 auto 14px;width:52px;height:52px;}
+.card-head h1{font-family:var(--font-display);font-size:26px;font-weight:800;margin-bottom:6px;}
+.card-head p{font-size:14px;color:var(--text-dim);}
+
+/* SOCIAL BUTTONS */
+.social-row{display:flex;gap:10px;margin-bottom:24px;}
+.social-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;padding:12px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--text);border:1px solid var(--border);background:rgba(255,255,255,.04);transition:.2s;}
+.social-btn:hover{background:rgba(255,255,255,.08);border-color:var(--primary);}
+.social-icon{width:20px;height:20px;flex-shrink:0;}
+
+/* DIVIDER */
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:12px;color:var(--text-faint);white-space:nowrap;}
+
+/* FORM */
+.form-group{margin-bottom:18px;position:relative;}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:7px;}
+.form-group label span.req{color:var(--danger);margin-left:2px;}
+.input-wrap{position:relative;display:flex;align-items:center;}
+.input-wrap input{
+  width:100%;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:12px;
+  padding:13px 42px 13px 16px;font-size:14.5px;color:var(--text);font-family:var(--font-body);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.input-wrap input::placeholder{color:var(--text-faint);}
+.input-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(124,58,237,.15);}
+.input-wrap input.error{border-color:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.12);}
+.input-wrap input.ok{border-color:var(--success);}
+.input-icon{position:absolute;right:14px;color:var(--text-faint);width:18px;height:18px;cursor:pointer;transition:.2s;flex-shrink:0;}
+.input-icon:hover{color:var(--text-dim);}
+.field-msg{font-size:12px;margin-top:5px;min-height:16px;}
+.field-msg.err{color:var(--danger);}
+.field-msg.ok{color:var(--success);}
+
+.row-inline{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.check-label{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-dim);cursor:pointer;}
+.check-label input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary);}
+.forgot{font-size:13px;color:var(--accent);font-weight:600;}
+.forgot:hover{color:var(--text);}
+
+/* SUBMIT */
+.submit-btn{
+  width:100%;padding:15px;border-radius:13px;font-size:15px;font-weight:700;color:#fff;
+  background:var(--grad-brand);box-shadow:0 6px 24px -6px rgba(124,58,237,.55);
+  transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px -6px rgba(124,58,237,.7);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{opacity:.6;transform:none;cursor:not-allowed;}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.card-footer{text-align:center;margin-top:24px;font-size:13.5px;color:var(--text-faint);}
+.card-footer a{color:var(--accent);font-weight:700;}
+.card-footer a:hover{color:var(--text);}
+
+/* SUCCESS OVERLAY */
+.success-overlay{
+  position:fixed;inset:0;z-index:200;background:rgba(9,11,21,.92);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  opacity:0;visibility:hidden;transition:.3s;
+}
+.success-overlay.show{opacity:1;visibility:visible;}
+.success-icon{width:72px;height:72px;background:rgba(34,197,94,.18);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275) both;}
+@keyframes popIn{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-overlay h2{font-family:var(--font-display);font-size:22px;font-weight:800;}
+.success-overlay p{font-size:14px;color:var(--text-dim);}
+.progress-bar{width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:var(--grad-brand);border-radius:4px;width:0%;transition:width 2s linear;}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-card);border:1px solid var(--border);padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 10px 30px -8px rgba(0,0,0,.5);z-index:300;opacity:0;transition:.25s;display:flex;align-items:center;gap:8px;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:480px){
+  .card{padding:28px 22px;border-radius:18px;}
+  .social-row{flex-direction:column;}
+  .topbar{padding:0 18px;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="stars"></div>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="index.html" class="logo">
+    <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+      <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40">
+        <stop offset="0%" stop-color="#7C3AED"/><stop offset="55%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#06B6D4"/>
+      </linearGradient></defs>
+      <path d="M9 28V12L20 23L31 12V28" stroke="url(#mg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="logo-text">MVerse</span>
+  </a>
+  <a href="index.html" class="topbar-link">← Back to games</a>
+</header>
+
+<!-- LOGIN CARD -->
+<div class="card" style="margin-top:64px;">
+  <div class="card-head">
+    <svg class="logo-mark" viewBox="0 0 52 52" fill="none">
+      <defs><linearGradient id="mg2" x1="0" y1="0" x2="52" y2="52">
+        <stop offset="0%" stop-color="#7C3AED"/><stop offset="55%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#06B6D4"/>
+      </linearGradient></defs>
+      <circle cx="26" cy="26" r="25" stroke="url(#mg2)" stroke-width="1.4" opacity=".3"/>
+      <path d="M12 36V16L26 30L40 16V36" stroke="url(#mg2)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>Welcome back</h1>
+    <p>Log in to your MVerse account to continue playing</p>
+  </div>
+
+  <!-- SOCIAL -->
+  <div class="social-row">
+    <button class="social-btn" onclick="socialLogin('Google')">
+      <svg class="social-icon" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+    <button class="social-btn" onclick="socialLogin('Discord')">
+      <svg class="social-icon" viewBox="0 0 24 24" fill="#5865F2">
+        <path d="M20.3 4.4A19.8 19.8 0 0015.4 3c-.2.4-.5.9-.7 1.3a18.3 18.3 0 00-5.4 0C9.1 3.9 8.8 3.4 8.6 3A19.6 19.6 0 003.7 4.4C.5 9.2-.3 13.9.1 18.5a20 20 0 006 3c.5-.7.9-1.4 1.3-2.1-.7-.3-1.4-.6-2-1 .2-.1.3-.3.5-.4a14.2 14.2 0 0012.2 0l.5.4c-.7.4-1.4.7-2 1 .4.8.8 1.5 1.3 2.2a19.9 19.9 0 006-3c.5-5.2-.8-9.8-3.6-14.2zM8 15.5c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1 2.2 2.4-1 2.4-2.2 2.4z"/>
+      </svg>
+      Continue with Discord
+    </button>
+  </div>
+
+  <div class="divider"><span>or sign in with email</span></div>
+
+  <!-- FORM -->
+  <form id="loginForm" novalidate>
+    <div class="form-group">
+      <label for="email">Email address <span class="req">*</span></label>
+      <div class="input-wrap">
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" oninput="validateEmail()">
+        <svg class="input-icon" id="emailIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+      </div>
+      <div class="field-msg" id="emailMsg"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password <span class="req">*</span></label>
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" oninput="validatePassword()">
+        <svg class="input-icon" id="pwToggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" onclick="togglePw('password','pwToggle')">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <div class="field-msg" id="pwMsg"></div>
+    </div>
+
+    <div class="row-inline">
+      <label class="check-label"><input type="checkbox" id="remember"> Remember me</label>
+      <a href="forgot-password.html" class="forgot">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="submit-btn" id="loginBtn">
+      <span class="spinner" id="loginSpinner"></span>
+      <span id="loginBtnText">Log in to MVerse</span>
+    </button>
+  </form>
+
+  <div class="card-footer">
+    Don't have an account? <a href="signup.html">Sign up free</a>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-icon">✓</div>
+  <h2>Welcome back!</h2>
+  <p>Logged in successfully. Redirecting…</p>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---- Validation ---- */
+function validateEmail(){
+  const el = document.getElementById('email');
+  const msg = document.getElementById('emailMsg');
+  const v = el.value.trim();
+  if(!v){ el.classList.remove('ok','error'); msg.textContent=''; msg.className='field-msg'; return false; }
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  el.classList.toggle('ok', ok); el.classList.toggle('error', !ok);
+  msg.textContent = ok ? '' : 'Please enter a valid email address.';
+  msg.className = ok ? 'field-msg ok' : 'field-msg err';
+  return ok;
+}
+function validatePassword(){
+  const el = document.getElementById('password');
+  const msg = document.getElementById('pwMsg');
+  const v = el.value;
+  if(!v){ el.classList.remove('ok','error'); msg.textContent=''; msg.className='field-msg'; return false; }
+  const ok = v.length >= 6;
+  el.classList.toggle('ok', ok); el.classList.toggle('error', !ok);
+  msg.textContent = ok ? '' : 'Password must be at least 6 characters.';
+  msg.className = ok ? 'field-msg ok' : 'field-msg err';
+  return ok;
+}
+function togglePw(inputId, iconId){
+  const inp = document.getElementById(inputId);
+  const isText = inp.type==='text';
+  inp.type = isText ? 'password' : 'text';
+  document.getElementById(iconId).innerHTML = isText
+    ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+    : '<path d="M17.9 17.9A10 10 0 0112 20C5 20 1 12 1 12a18 18 0 015.2-5.8M9.9 4.2A9 9 0 0112 4c7 0 11 8 11 8a18 18 0 01-2.1 3.1M1 1l22 22M9.5 9.5a3 3 0 004.2 4.2"/>';
+}
+
+/* ---- Social login ---- */
+function socialLogin(provider){
+  showToast(`${provider} login coming soon — stay tuned!`);
+}
+
+/* ---- Submit ---- */
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const emailOk = validateEmail();
+  const pwOk = validatePassword();
+  if(!emailOk || !pwOk){ shakeCard(); return; }
+
+  const btn = document.getElementById('loginBtn');
+  const spinner = document.getElementById('loginSpinner');
+  const btnText = document.getElementById('loginBtnText');
+  btn.disabled = true; spinner.style.display='block'; btnText.textContent='Signing in…';
+
+  setTimeout(()=>{
+    btn.disabled=false; spinner.style.display='none'; btnText.textContent='Log in to MVerse';
+    /* simulate auth — in production: validate against your backend */
+    const stored = JSON.parse(localStorage.getItem('mverse_user')||'null');
+    const email = document.getElementById('email').value.trim();
+    const pw = document.getElementById('password').value;
+    if(stored && stored.email===email && stored.password===pw){
+      loginSuccess(stored.username||email.split('@')[0]);
+    } else if(!stored && email && pw.length>=6){
+      /* demo: auto-create session if no registered account */
+      loginSuccess(email.split('@')[0]);
+    } else {
+      showError('email','Incorrect email or password.');
+      showToast('❌ Incorrect email or password');
+      shakeCard();
+    }
+  }, 1600);
+});
+
+function showError(field, msg){
+  const el = document.getElementById(field);
+  const msgEl = document.getElementById(field+'Msg');
+  el.classList.add('error'); el.classList.remove('ok');
+  if(msgEl){ msgEl.textContent=msg; msgEl.className='field-msg err'; }
+}
+
+function loginSuccess(name){
+  localStorage.setItem('mverse_session', JSON.stringify({name, loggedIn:true, time:Date.now()}));
+  const overlay = document.getElementById('successOverlay');
+  overlay.querySelector('h2').textContent = `Welcome back, ${name}!`;
+  overlay.classList.add('show');
+  const fill = document.getElementById('progressFill');
+  requestAnimationFrame(()=>fill.style.width='100%');
+  setTimeout(()=> window.location.href='index.html', 2100);
+}
+
+function shakeCard(){
+  const card = document.querySelector('.card');
+  card.style.animation='shake .4s ease';
+  setTimeout(()=>card.style.animation='',420);
+}
+
+let toastT;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* Add shake keyframes via JS */
+const ks = document.createElement('style');
+ks.textContent='@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-6px);}80%{transform:translateX(4px);}}';
+document.head.appendChild(ks);
+
+/* Enter key on email moves to password */
+document.getElementById('email').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('password').focus();}});
+</script>
+</body>
+</html>
