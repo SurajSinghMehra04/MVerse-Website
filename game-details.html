@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8910075426156814"
      crossorigin="anonymous"></script>
+<!-- Supabase JS SDK v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ============ TOKENS (same system as homepage) ============ */
 :root{
@@ -1223,77 +1225,227 @@ document.querySelectorAll('.mobile-nav button').forEach(btn=>{
 });
 
 /* ============================================================
+   SUPABASE CONFIG — replace with your values
+   Supabase Dashboard → Settings → API
+   ============================================================ */
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+/* ============================================================ */
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ============================================================
    SAVE PROGRESS SYSTEM
-   - Auto-saves every 30 seconds while game is active
-   - 3 manual save slots per game
-   - Stores: score, level, play time, timestamp
-   - Persists across sessions via localStorage
+   ▸ Logged-in users  → Supabase (PostgreSQL, synced across devices)
+   ▸ Guest users      → localStorage (device-only fallback)
+   ▸ Auto-save every 30 s + on page unload
+   ▸ 3 manual slots per game per user
    ============================================================ */
 
-const SAVE_KEY = `mverse_save_g${current.id}`;
-const HISTORY_KEY = 'mverse_history';
-let sessionStartTime = Date.now();
-let sessionScore = 0;
-let sessionLevel = 1;
-let autoSaveInterval = null;
+let currentUser   = null;   // Supabase user object when logged in
+let sessionStart  = Date.now();
+let sessionScore  = 0;
+let sessionLevel  = 1;
+const LS_KEY      = `mverse_save_g${current.id}`;
+const LS_HIST     = 'mverse_history';
 
-/* ---- Session score simulator (replace with real game data in production) ---- */
+/* ── simulate in-game score growth (replace with real game bridge) ── */
 setInterval(()=>{
-  sessionScore += Math.floor(Math.random()*120 + 20);
-  if(Math.random() > 0.95) sessionLevel++;
+  sessionScore += Math.floor(Math.random()*130 + 20);
+  if(Math.random() > 0.94) sessionLevel++;
 }, 8000);
 
-/* ---- Save to localStorage ---- */
-function buildSaveData(slotLabel){
-  return {
-    gameId: current.id,
-    gameTitle: current.title,
-    gameEmoji: current.e,
-    slot: slotLabel,
-    score: sessionScore,
-    level: sessionLevel,
-    playTimeMs: Date.now() - sessionStartTime,
-    savedAt: Date.now()
-  };
+/* ── format helpers ── */
+function fmtMs(ms){
+  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
+  return h>0?`${h}h ${m%60}m`:m>0?`${m}m ${s%60}s`:`${s}s`;
+}
+function fmtDate(iso){
+  return new Date(iso).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+function timeAgo(iso){
+  const mins=Math.round((Date.now()-new Date(iso))/60000);
+  return mins<1?'just now':mins<60?`${mins}m ago`:`${Math.floor(mins/60)}h ago`;
 }
 
-function getSaves(){
-  try{ return JSON.parse(localStorage.getItem(SAVE_KEY)) || [null,null,null]; }
+/* ── check auth on load ── */
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ currentUser = session.user; updateNavbar(session.user); }
+  else { updateNavbar(null); }
+  await checkExistingSave();
+  startAutoSave();
+  recordVisit();
+}
+
+function updateNavbar(user){
+  const loginBtn  = document.querySelector('a.btn-ghost');
+  const signupBtn = document.querySelector('a.btn-grad');
+  if(!loginBtn || !signupBtn) return;
+  if(user){
+    const name   = user.user_metadata?.username || user.email?.split('@')[0] || 'Player';
+    const avatar = user.user_metadata?.avatar   || '🎮';
+    loginBtn.style.display='none';
+    signupBtn.textContent = `${avatar} ${name}`;
+    signupBtn.href='#';
+    signupBtn.onclick=(e)=>{ e.preventDefault(); signOut(); };
+  }
+}
+async function signOut(){
+  await sb.auth.signOut();
+  window.location.href='index.html';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SUPABASE SAVE / LOAD
+══════════════════════════════════════════════════════════════ */
+async function sbGetSaves(){
+  if(!currentUser) return null;
+  const { data, error } = await sb.from('game_saves')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('game_id', current.id)
+    .order('slot');
+  if(error){ console.error('Save load error:', error.message); return null; }
+  /* normalise to array [slot0, slot1, slot2] */
+  const out = [null,null,null];
+  (data||[]).forEach(row=>{ if(row.slot>=0 && row.slot<=2) out[row.slot]=row; });
+  return out;
+}
+
+async function sbWriteSlot(slotIdx){
+  if(!currentUser) return false;
+  const { error } = await sb.from('game_saves').upsert({
+    user_id:      currentUser.id,
+    game_id:      current.id,
+    slot:         slotIdx,
+    score:        sessionScore,
+    level:        sessionLevel,
+    play_time_ms: Date.now() - sessionStart,
+    saved_at:     new Date().toISOString()
+  },{ onConflict:'user_id,game_id,slot' });
+  if(error){ console.error('Save write error:', error.message); return false; }
+  return true;
+}
+
+async function sbDeleteSlot(slotIdx){
+  if(!currentUser) return;
+  await sb.from('game_saves')
+    .delete()
+    .eq('user_id', currentUser.id)
+    .eq('game_id', current.id)
+    .eq('slot', slotIdx);
+}
+
+async function sbRecordHistory(){
+  if(!currentUser) return;
+  await sb.from('game_history').insert({
+    user_id:     currentUser.id,
+    game_id:     current.id,
+    score:       sessionScore,
+    level:       sessionLevel,
+    duration_ms: Date.now() - sessionStart
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOCALSTORAGE FALLBACK (guests / offline)
+══════════════════════════════════════════════════════════════ */
+function lsGetSaves(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || [null,null,null]; }
   catch{ return [null,null,null]; }
 }
-function putSaves(saves){ localStorage.setItem(SAVE_KEY, JSON.stringify(saves)); }
-
-/* ---- Format helpers ---- */
-function fmtTime(ms){
-  const s=Math.floor(ms/1000), m=Math.floor(s/60), h=Math.floor(m/60);
-  if(h>0) return `${h}h ${m%60}m`;
-  if(m>0) return `${m}m ${s%60}s`;
-  return `${s}s`;
+function lsPutSaves(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+function lsBuildRow(slot){
+  return { slot, score:sessionScore, level:sessionLevel,
+           play_time_ms:Date.now()-sessionStart,
+           saved_at:new Date().toISOString(),
+           game_id:current.id };
 }
-function fmtDate(ts){
-  const d=new Date(ts);
-  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+function lsRecordHistory(){
+  try{
+    let h = JSON.parse(localStorage.getItem(LS_HIST))||[];
+    h = h.filter(x=>x.gameId!==current.id);
+    h.unshift({ gameId:current.id, gameTitle:current.title, gameEmoji:current.e,
+                gameCat:current.cat, playedAt:Date.now(),
+                score:sessionScore, level:sessionLevel });
+    localStorage.setItem(LS_HIST, JSON.stringify(h.slice(0,20)));
+  } catch(e){}
 }
 
-/* ---- Render the 3 save slots ---- */
-function renderSaveSlots(){
-  const saves = getSaves();
+/* ══════════════════════════════════════════════════════════════
+   UNIFIED API (tries Supabase first, falls back to localStorage)
+══════════════════════════════════════════════════════════════ */
+async function getSaves(){
+  if(currentUser){
+    const rows = await sbGetSaves();
+    if(rows !== null) return rows;
+  }
+  return lsGetSaves();
+}
+
+async function saveToSlot(i){
+  const lbl = `Slot ${i+1}`;
+  if(currentUser){
+    const ok = await sbWriteSlot(i);
+    if(!ok){ showToast('⚠️ Save failed — check connection'); return; }
+    sbRecordHistory();
+  } else {
+    const saves = lsGetSaves();
+    saves[i] = lsBuildRow(i);
+    lsPutSaves(saves);
+    lsRecordHistory();
+  }
+  showToast(`✅ Progress saved to ${lbl}${currentUser?'' :' (guest — log in to sync)'}`);
+  flashSaveIndicator('Saved to '+lbl);
+  renderSaveSlots();
+}
+
+async function deleteSaveSlot(i){
+  if(currentUser){ await sbDeleteSlot(i); }
+  else { const s=lsGetSaves(); s[i]=null; lsPutSaves(s); }
+  showToast(`🗑 Slot ${i+1} cleared`);
+  renderSaveSlots();
+}
+
+async function loadSaveSlot(i){
+  const saves = await getSaves();
+  const sv = (saves && saves[i]) ? saves[i] : (saves||[]).find(s=>s!==null);
+  if(!sv){ showToast('No save data found — starting fresh'); return; }
+  sessionScore = sv.score || 0;
+  sessionLevel = sv.level || 1;
+  showToast(`▶ Resumed Slot ${i+1} — Lv.${sessionLevel} · ${sessionScore.toLocaleString()} pts`);
+  document.getElementById('resumeBanner').style.display='none';
+  runLoading();
+}
+
+async function manualSave(){
+  const saves = await getSaves();
+  const emptyIdx = saves.findIndex(s=>s===null);
+  saveToSlot(emptyIdx >= 0 ? emptyIdx : 0);
+}
+
+/* ── render 3 slot cards ── */
+async function renderSaveSlots(){
   const panel = document.getElementById('saveSlotsPanel');
-  const list = document.getElementById('saveSlotsList');
-  panel.style.display = 'block';
-  list.innerHTML = saves.map((sv,i)=> sv ? `
+  const list  = document.getElementById('saveSlotsList');
+  panel.style.display='block';
+  list.innerHTML = '<p style="font-size:13px;color:var(--text-faint);">Loading saves…</p>';
+  const saves = await getSaves();
+  const guestNote = currentUser ? '' : '<p style="font-size:11.5px;color:var(--warning);margin-bottom:12px;">⚠️ Playing as guest — <a href="login.html" style="color:var(--accent);font-weight:700;">log in</a> to sync saves across devices.</p>';
+  list.innerHTML = guestNote + saves.map((sv,i)=> sv ? `
     <div class="save-slot">
-      <div class="slot-num">Slot ${i+1}</div>
-      <div class="slot-emoji">${sv.gameEmoji}</div>
-      <div class="slot-title">Lv.${sv.level} · ${sv.score.toLocaleString()} pts</div>
-      <div class="slot-time">
-        <svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        ${fmtDate(sv.savedAt)} · ${fmtTime(sv.playTimeMs)} played
-      </div>
+      <div class="slot-num">Slot ${i+1}${currentUser?'  ☁️':' 💻'}</div>
+      <div class="slot-emoji">${current.e}</div>
+      <div class="slot-title">Lv.${sv.level} · ${(sv.score||0).toLocaleString()} pts</div>
+      <div class="slot-time"><svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        ${fmtDate(sv.saved_at)} · ${fmtMs(sv.play_time_ms||0)} played</div>
       <div class="slot-actions">
         <button class="slot-load" onclick="loadSaveSlot(${i})">▶ Resume</button>
         <button class="slot-delete" onclick="deleteSaveSlot(${i})">🗑</button>
       </div>
+      <button class="slot-save" onclick="saveToSlot(${i})">Overwrite Save</button>
     </div>` : `
     <div class="save-slot empty" onclick="saveToSlot(${i})">
       <div style="text-align:center;">
@@ -1303,123 +1455,68 @@ function renderSaveSlots(){
       </div>
     </div>`
   ).join('');
-  /* add Save-to-slot buttons on occupied slots */
-  saves.forEach((sv,i)=>{ if(sv){
-    const el = list.children[i];
-    const btn = document.createElement('button');
-    btn.className='slot-save'; btn.textContent='Overwrite Save';
-    btn.onclick = ()=> saveToSlot(i);
-    el.appendChild(btn);
-  }});
 }
 
-function saveToSlot(i){
-  const saves = getSaves();
-  saves[i] = buildSaveData(`Slot ${i+1}`);
-  putSaves(saves);
-  updateHistory();
-  showToast(`✅ Progress saved to Slot ${i+1}!`);
-  renderSaveSlots();
-  flashSaveIndicator('Saved to Slot '+(i+1));
+/* ── flash save indicator in toolbar ── */
+function flashSaveIndicator(label){
+  const dot=document.getElementById('autoSaveDot'), lbl=document.getElementById('autoSaveLabel');
+  if(!dot||!lbl) return;
+  lbl.textContent=label;
+  dot.style.background='var(--success)';dot.style.boxShadow='0 0 8px var(--success)';
+  setTimeout(()=>{ dot.style.boxShadow=''; lbl.textContent=currentUser?'Cloud saved':'Local saved'; },2400);
 }
 
-function deleteSaveSlot(i){
-  const saves = getSaves();
-  saves[i] = null;
-  putSaves(saves);
-  renderSaveSlots();
-  showToast(`🗑 Slot ${i+1} cleared`);
-}
-
-function loadSaveSlot(i){
-  const saves = getSaves();
-  const sv = saves[i] || saves.find(s=>s!==null);
-  if(!sv){ showToast('No save data found — starting fresh'); return; }
-  sessionScore = sv.score;
-  sessionLevel = sv.level;
-  showToast(`▶ Resumed from Slot ${i+1} — Score: ${sv.score.toLocaleString()}, Lv.${sv.level}`);
-  document.getElementById('resumeBanner').style.display='none';
-  runLoading();
-}
-
-/* ---- Manual save button ---- */
-function manualSave(){
-  /* Find first empty slot, else overwrite slot 0 */
-  const saves = getSaves();
-  const empty = saves.findIndex(s=>s===null);
-  const slot = empty >= 0 ? empty : 0;
-  saveToSlot(slot);
+/* ── check existing saves on page load → show resume banner ── */
+async function checkExistingSave(){
+  const saves = await getSaves();
+  if(!saves) return;
+  const latest = saves.filter(s=>s!==null).sort((a,b)=>new Date(b.saved_at)-new Date(a.saved_at))[0];
+  if(!latest) return;
+  const banner = document.getElementById('resumeBanner');
+  document.getElementById('resumeTitle').textContent  = `Continue ${current.title}`;
+  document.getElementById('resumeDesc').textContent   =
+    `Lv.${latest.level} · ${(latest.score||0).toLocaleString()} pts · saved ${timeAgo(latest.saved_at)} · ${fmtMs(latest.play_time_ms||0)} played`;
+  banner.style.display='flex';
   renderSaveSlots();
 }
 
-/* ---- Auto-save every 30 seconds ---- */
+/* ── auto-save every 30 s ── */
 function startAutoSave(){
-  autoSaveInterval = setInterval(()=>{
-    const saves = getSaves();
-    /* Auto-save always goes to slot 0 silently */
-    saves[0] = buildSaveData('Auto');
-    putSaves(saves);
-    updateHistory();
-    flashSaveIndicator('Auto-saved');
+  setInterval(async ()=>{
+    if(currentUser){ await sbWriteSlot(0); sbRecordHistory(); }
+    else { const s=lsGetSaves(); s[0]=lsBuildRow(0); lsPutSaves(s); lsRecordHistory(); }
+    flashSaveIndicator(currentUser?'☁️ Auto-saved':'💻 Auto-saved (local)');
   }, 30000);
 }
 
-function flashSaveIndicator(label){
-  const dot = document.getElementById('autoSaveDot');
-  const lbl = document.getElementById('autoSaveLabel');
-  lbl.textContent = label;
-  dot.style.background = 'var(--success)';
-  dot.style.boxShadow = '0 0 6px var(--success)';
-  setTimeout(()=>{ dot.style.boxShadow=''; lbl.textContent='Auto-saved'; }, 2000);
+/* ── record this visit to history ── */
+async function recordVisit(){
+  if(currentUser){ await sbRecordHistory(); }
+  else { lsRecordHistory(); }
 }
 
-/* ---- Play history (drives "Recently Played" on homepage) ---- */
-function updateHistory(){
-  try{
-    let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-    history = history.filter(h=>h.gameId!==current.id);
-    history.unshift({
-      gameId: current.id,
-      gameTitle: current.title,
-      gameEmoji: current.e,
-      gameCat: current.cat,
-      playedAt: Date.now(),
-      score: sessionScore,
-      level: sessionLevel
-    });
-    history = history.slice(0,20);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  } catch(e){}
-}
-
-/* ---- Check for existing save on load ---- */
-function checkExistingSave(){
-  const saves = getSaves();
-  const latest = saves.filter(s=>s!==null).sort((a,b)=>b.savedAt-a.savedAt)[0];
-  if(latest){
-    const banner = document.getElementById('resumeBanner');
-    const ago = Math.round((Date.now()-latest.savedAt)/60000);
-    const agoStr = ago<1?'just now': ago<60?`${ago}m ago`:`${Math.floor(ago/60)}h ago`;
-    document.getElementById('resumeTitle').textContent = `Continue ${latest.gameTitle}`;
-    document.getElementById('resumeDesc').textContent =
-      `Lv.${latest.level} · ${latest.score.toLocaleString()} pts · saved ${agoStr} · ${fmtTime(latest.playTimeMs)} played`;
-    banner.style.display = 'flex';
-    renderSaveSlots();
-  }
-}
-
-/* ---- Record this visit to history immediately ---- */
-updateHistory();
-checkExistingSave();
-startAutoSave();
-
-/* ---- Save on page unload ---- */
+/* ── save on tab close / navigate away ── */
 window.addEventListener('beforeunload', ()=>{
-  const saves = getSaves();
-  saves[0] = buildSaveData('Auto');
-  putSaves(saves);
-  updateHistory();
+  if(currentUser){
+    /* Supabase calls are async so we use the beacon API for reliability */
+    const payload = JSON.stringify({
+      user_id:currentUser.id, game_id:current.id,
+      slot:0, score:sessionScore, level:sessionLevel,
+      play_time_ms:Date.now()-sessionStart,
+      saved_at:new Date().toISOString()
+    });
+    navigator.sendBeacon && navigator.sendBeacon(
+      `${SUPABASE_URL}/rest/v1/game_saves`,
+      new Blob([payload],{type:'application/json'})
+    );
+  } else {
+    const s=lsGetSaves(); s[0]=lsBuildRow(0); lsPutSaves(s);
+    lsRecordHistory();
+  }
 });
+
+/* kick everything off */
+initAuth();
 
 </script>
 </body>

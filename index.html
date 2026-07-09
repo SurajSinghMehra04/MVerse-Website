@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8910075426156814"
      crossorigin="anonymous"></script>
+<!-- Supabase JS SDK v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -1014,7 +1016,105 @@ for(let i=0;i<22;i++){
   pWrap.appendChild(p);
 }
 
-/* ============ RESUME BADGES (show on cards with saved progress) ============ */
+/* ══════════════════════════════════════════════════════════════
+   SUPABASE CONFIG — replace with your values
+   Supabase Dashboard → Settings → API
+   ══════════════════════════════════════════════════════════════ */
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+/* ══════════════════════════════════════════════════════════════ */
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ============ AUTH STATE → UPDATE NAVBAR ============ */
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ applyLoggedInNav(session.user); loadCloudHistory(session.user.id); }
+
+  /* listen for login / logout events during the session */
+  sb.auth.onAuthStateChange((_event, session)=>{
+    if(session){ applyLoggedInNav(session.user); loadCloudHistory(session.user.id); }
+    else       { applyLoggedOutNav(); }
+  });
+}
+
+function applyLoggedInNav(user){
+  const name   = user.user_metadata?.username || user.email?.split('@')[0] || 'Player';
+  const avatar = user.user_metadata?.avatar   || '🎮';
+  const loginBtn  = document.querySelector('.btn-ghost');
+  const signupBtn = document.querySelector('.btn-grad');
+  if(!loginBtn || !signupBtn) return;
+  loginBtn.style.display  = 'none';
+  signupBtn.textContent   = `${avatar} ${name}`;
+  signupBtn.href          = '#';
+  signupBtn.title         = 'Click to sign out';
+  signupBtn.onclick       = async (e)=>{
+    e.preventDefault();
+    await sb.auth.signOut();
+    showToast('Signed out 👋');
+  };
+}
+function applyLoggedOutNav(){
+  const loginBtn  = document.querySelector('.btn-ghost');
+  const signupBtn = document.querySelector('.btn-grad');
+  if(!loginBtn || !signupBtn) return;
+  loginBtn.style.display  = '';
+  signupBtn.textContent   = 'Sign up';
+  signupBtn.href          = 'signup.html';
+  signupBtn.onclick       = null;
+}
+
+/* ── show toast ── */
+let _toastTimer;
+function showToast(msg){
+  let t = document.getElementById('_hpToast');
+  if(!t){ t=document.createElement('div'); t.id='_hpToast';
+    t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-card);border:1px solid var(--border);padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:600;opacity:0;transition:.25s;';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; },2600);
+}
+
+/* ============ CLOUD HISTORY → "CONTINUE" BADGES ============ */
+async function loadCloudHistory(userId){
+  try{
+    const { data } = await sb.from('game_history')
+      .select('game_id')
+      .eq('user_id', userId)
+      .order('played_at', { ascending:false })
+      .limit(30);
+    if(!data) return;
+    const played = new Set(data.map(r=>r.game_id));
+    /* also check which have a save slot */
+    const { data: saves } = await sb.from('game_saves')
+      .select('game_id')
+      .eq('user_id', userId);
+    const saved = new Set((saves||[]).map(r=>r.game_id));
+    applyCloudBadges(played, saved);
+  } catch(e){}
+}
+
+function applyCloudBadges(played, saved){
+  document.querySelectorAll('.card').forEach(card=>{
+    const id = parseInt(card.dataset.id);
+    if(!id) return;
+    const badgesRow = card.querySelector('.badges-row');
+    if(!badgesRow) return;
+    if(saved.has(id) && !badgesRow.querySelector('.badge.continue')){
+      const b=document.createElement('span');
+      b.className='badge continue';
+      b.textContent='CONTINUE';
+      b.style.cssText='background:rgba(34,197,94,0.92);';
+      badgesRow.prepend(b);
+    }
+  });
+}
+
+initAuth();
+
+/* ============ RESUME BADGES (local fallback for guests) ============ */
 function applyResumeBadges(){
   try{
     const history = JSON.parse(localStorage.getItem('mverse_history')) || [];
